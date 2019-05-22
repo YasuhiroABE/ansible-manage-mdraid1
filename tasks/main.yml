@@ -2,6 +2,7 @@
 # tasks file for manage-tx1310m3-mdraid1
 
 - name: mkdir boot/efi* directories
+  become: true
   file:
     path: "{{ item.point }}"
     state: directory
@@ -11,6 +12,7 @@
   with_items: "{{ yamdraid1_targets }}"
   
 - name: mount /dev/sdX2 to /boot/efi*
+  become: true
   mount:
     state: mounted
     path: "{{ item.point }}"
@@ -20,6 +22,7 @@
   with_items: "{{ yamdraid1_targets }}"
 
 - name: check /boot/efi* is empty or not
+  become: true
   find:
     paths: "{{ item.point }}"
     patterns: "*"
@@ -28,6 +31,7 @@
   register: checkEFIFiles
 
 - name: exec grub-install if the /boot/efi* is empty
+  become: true
   command: grub-install --efi-directory "{{ item.item.point }}" --bootloader-id "{{ item.item.grublabel }}"
   when: item.matched == 0
   with_items: "{{ checkEFIFiles.results }}"
