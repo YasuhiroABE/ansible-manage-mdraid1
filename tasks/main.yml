@@ -1,0 +1,41 @@
+---
+# tasks file for manage-tx1310m3-mdraid1
+
+- name: mkdir boot/efi* directories
+  file:
+    path: "{{ item.point }}"
+    state: directory
+    mode: "0700"
+    owner: "root"
+    group: "root"
+  with_items: "{{ yamdraid1_targets }}"
+  
+- name: mount /dev/sdX2 to /boot/efi*
+  mount:
+    state: mounted
+    path: "{{ item.point }}"
+    src: "{{ item.device }}"
+    fstype: "vfat"
+    opts: "rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro"
+  with_items: "{{ yamdraid1_targets }}"
+
+- name: check /boot/efi* is empty or not
+  find:
+    paths: "{{ item.point }}"
+    patterns: "*"
+    recurse: yes
+  with_items: "{{ yamdraid1_targets }}"
+  register: checkEFIFiles
+
+- name: exec grub-install if the /boot/efi* is empty
+  command: grub-install --efi-directory "{{ item.item.point }}" --bootloader-id "{{ item.item.grublabel }}"
+  when: item.matched == 0
+  with_items: "{{ checkEFIFiles.results }}"
+
+- name: check EFI boot order
+  command: efibootmgr -v
+  register: res
+
+- debug: var=res
+
+
