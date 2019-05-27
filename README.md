@@ -42,7 +42,9 @@ Role Variables
 
     yamdraid1_targets:
 	  - { device: "/dev/sda2", point: "/boot/efi", grublabel: "ubuntu" }
-	  - { device: "/dev/sdb2", point: "/boot/efi2", grublabel: "ubuntu-2nd" }
+	  - { device: "/dev/sdb2", point: "/boot/efi2", grublabel: "ubuntu" }
+
+Note: The "grublabel" key should be the fixed value, "ubuntu". If you change the string, the corrensponding EFI system will be installed into "/EFI/$grublabel". However, the grub system will still look for the "grub.cfg" file from "/EFI/ubuntu/" directory.
 
 Dependencies
 ------------
