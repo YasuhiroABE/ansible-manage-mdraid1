@@ -3,6 +3,5 @@
 
 yamdraid1_targets:
   - { device: "/dev/sda2", point: "/boot/efi", grublabel: "ubuntu" }
-  - { device: "/dev/sdb2", point: "/boot/efi2", grublabel: "ubuntu-2nd" }
-
+  - { device: "/dev/sdb2", point: "/boot/efi2", grublabel: "ubuntu" }
 
