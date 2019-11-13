@@ -92,6 +92,97 @@ Boot0002* ubuntu-2nd    HD(2,GPT,4d76e3cd-78ed-443b-baef-a8471fc78990,0x7c4,0x5f
 
 ```
 
+### How to fix the system when the primary disk broken
+
+If the primary /boot/efi partition or its disk, /dev/sda in this example, is broken, the system boot process will be suspended.
+You will see the following message on the console:
+
+```text
+You are in emergency mode. After ....
+....
+Press Enter for maintenance
+(or press Control-D to continue):
+```
+
+After entering the maintenance mode, comment out the missing /dev/sdb2 device in /etc/fstab as follows:
+
+```text
+# /boot/efi was on /dev/sda2 during installation
+/dev/sda2 /boot/efi vfat rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0 0
+# /dev/sdb2 /boot/efi2 vfat rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0 0
+```
+
+The previous /boot/efi2 of /dev/sdb2 is now mounted on the /boot/efi.
+The system suspends the boot process due to the missing /dev/sdb2, former /dev/sda2, device.
+
+If you would like to replace the /dev/sda, please update the /etc/fstab carefully.
+Before shutting down the system, update the /etc/fstab as follows:
+
+```text
+## There is no partitions on the bare /dev/sda.
+## The /boot/efi must be pointing the healthy partition.
+
+# /boot/efi was on /dev/sda2 during installation
+# /dev/sda2 /boot/efi2 vfat rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0 0
+/dev/sdb2 /boot/efi vfat rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0 0
+```
+
+Replace the /dev/sda and boot up the system, then fixing up the partition table as follows:
+
+```bash
+## check the healthy partition table
+$ sudo parted /dev/sdb
+(parted) print
+Model: VMware, VMware Virtual S (scsi)
+Disk /dev/sdb: 20480MiB
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+Disk Flags:
+
+Number  Start     End       Size      File system  Name                  Flags
+ 1      1.00MiB   20027MiB  20026MiB                                     raid
+ 2      20027MiB  20479MiB  452MiB    fat32        EFI System Partition  boot, esp
+
+
+## parepare the partion on new disk
+$ sudo parted /dev/sda
+(paretd) mkpart parimary 1 20027
+(parted) set 1 raid
+(parted) mkpart ESP fat32 20027 20479
+(parted) set 2 boot on
+(parted) print
+Model: VMware, VMware Virtual S (scsi)
+Disk /dev/sda: 20480MiB
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+Disk Flags:
+
+Number  Start     End       Size      File system  Name     Flags
+ 1      1.00MiB   20027MiB  20026MiB               primary  raid
+ 2      20027MiB  20479MiB  452MiB    fat32        ESP      boot, esp
+```
+
+Then, run the rsync command to update the empty /boot/efi2:
+
+```bash
+$ sudo mount /dev/sda2 /boot/efi2
+$ sudo rsync -av /boot/efi/. /boot/efi2/.
+```
+
+Now both EFI partiions are healthy, so that update the /etc/fstab as follows:
+
+```text
+# /boot/efi was on /dev/sda2 during installation
+/dev/sda2 /boot/efi vfat rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0 0
+/dev/sdb2 /boot/efi2 vfat rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0 0
+```
+
+And also, update the software raid by the mdadm command.
+
+```bash
+$ sudo mdadm --manage /dev/md0 --add /dev/sda1
+```
+
 License
 -------
 
